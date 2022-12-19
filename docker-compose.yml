@@ -1,0 +1,51 @@
+# Source: https://github.com/docker/awesome-compose/tree/master/official-documentation-samples/wordpress/
+
+version: '3.1'
+
+services:
+
+  wordpress:
+    image: wordpress:6.1
+    restart: unless-stopped
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpressuser
+      WORDPRESS_DB_PASSWORD: 'mypassword' # TODO replace password
+      WORDPRESS_DB_NAME: wordpressdb
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - traefik-net
+      - wordpress-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-net" # in case of multiple nets this forces to select the correct one
+      # ROUTER https
+      - "traefik.http.routers.static-content-server-secure.rule=Host(`sub.my-domain.com`)" # TODO replace domain
+      - "traefik.http.routers.static-content-server-secure.entrypoints=websecure"
+      # - "traefik.http.routers.hw-frontend-secure.tls=true"
+      - "traefik.http.routers.static-content-server-secure.tls.certresolver=mytlschallenge"
+
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    ports:
+      - 4245:3306
+    environment:
+      MYSQL_DATABASE: wordpressdb
+      MYSQL_USER: wordpressuser
+      MYSQL_PASSWORD: 'mypassword' # TODO replace password
+      MYSQL_RANDOM_ROOT_PASSWORD: 'myrootpassword' # TODO replace password
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - wordpress-net
+
+volumes:
+  wordpress_data:
+  db_data:
+
+networks:
+  wordpress-net:
+  traefik-net:
+    external: true
